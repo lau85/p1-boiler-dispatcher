@@ -1,0 +1,65 @@
+esphome:
+  name: esphome-web-27cfa4
+  friendly_name: ESPHome Web 27cfa4
+
+esp8266:
+  board: esp01_1m
+
+# Enable logging
+# logger:
+# disable UART logging.
+#  baud_rate: 0
+# Turn off logging for TX port. Does not work as expected. Turning of logging completely.
+#  level: NONE
+
+# Enable Home Assistant API
+api:
+  encryption:
+    key: "REPLACE WITH KEY FOR HOMEASSIST"
+
+ota:
+
+
+wifi:
+  ssid: REPLACE WITH YOUR AP SSID
+  password: REPLACE WITH YOUR AP PASSWORD
+
+  # Enable fallback hotspot (captive portal) in case wifi connection fails
+  ap:
+    ssid: "Esphome-Web-27Cfa4"
+    password: "vb9BkwcwK7d3"
+
+captive_portal:
+    
+web_server:
+
+# Example configuration entry
+output:
+  - platform: esp8266_pwm
+    pin: GPIO2
+    frequency: 1000 Hz
+    id: pwm_output
+
+# Example usage in a light
+light:
+  - platform: monochromatic
+    output: pwm_output
+    name: "Boiler power"
+  
+# Example configuration entry
+dallas:
+  - pin: GPIO1
+    update_interval: 30s
+
+# Individual sensors
+sensor:
+  - platform: dallas
+    address: 0xa53c01d607227a28
+    name: "Boiler temperature"
+    filters:
+      - filter_out: nan
+  - platform: dallas
+    address: 0x793c01d607fc5328
+    name: "Boiler temperature 2"
+    filters:
+      - filter_out: nan
