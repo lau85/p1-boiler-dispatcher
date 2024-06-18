@@ -60,17 +60,27 @@ def calculate_required_balance():
     global start_exported
     global MAX_BALANCE_TOTAL
     cycle_exported = 0
-    if start_time is None or (state.p1_state_time.minute % 15 == 0 and start_time.minute != state.p1_state_time.minute):
+
+    # to reset start_time every 15 minutes.
+    # TODO move average consumption calculation to a separate thread
+    # there is a risk, that p1_state_time is not updated if p1 will not respond for longer than 1 minute and start_time will not be reset.
+    if start_time is not None and state.p1_state_time.minute % 15 == 0 and start_time.minute != state.p1_state_time.minute:
+        start_time = None
+
+    if start_time is None:
         print("Update start_time. ")
         start_time = state.p1_state_time
         start_exported = state.current_exported
         cycle_exported = 0
         cycle_duration = 0
-        average = state.inst_balance_total
     else:
         cycle_exported = state.current_exported - start_exported
         cycle_duration = state.p1_state_time.timestamp() - start_time.timestamp()
+
+    if cycle_duration > 10:
         average = cycle_exported * 3600 / cycle_duration * (-1)
+    else:
+        average = state.inst_balance_total
 
     required_balance = MIN_BALANCE_TOTAL + 300
     if (cycle_duration > 30):
@@ -127,7 +137,9 @@ def calculate_power(inst_balance_total, required_balance, power):
 def recalculate_power_by_temperature(power):
     global state
     currenttime = datetime.datetime.now()
-    if float(state.boiler_temperature) < 50 and currenttime.hour > 16 and currenttime.hour < 19 and currenttime.timestamp() - state.boiler_temperature_time.timestamp() < 60000:
+    temperature_value_age = currenttime.timestamp() - state.boiler_temperature_time.timestamp()
+    time_condition = (currenttime.hour >= 16 and currenttime.hour < 19) or (currenttime.hour >= 7 and currenttime.hour < 8)
+    if float(state.boiler_temperature) < 50 and temperature_value_age < 60000 and time_condition:
         print(f"T: {state.boiler_temperature:>3.2f}\u2103", end="")
         return 255
     else:
