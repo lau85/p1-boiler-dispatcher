@@ -8,12 +8,18 @@ BOILER_URL='http://10.0.0.191/light/boiler_power'
 
 BOILER_PHASE = 0
 
-MIN_BALANCE_TOTAL = -9980
-#MIN_BALANCE_TOTAL = -4000
-MAX_BALANCE_TOTAL = -4000
+#Need to increase buffer in summer time to 300 maybe and also change MIN_BALANCE_TOTAL
+BUFFER = 200
+MIN_BALANCE_TOTAL = -9900
+MAX_BALANCE_TOTAL = -5000
 
 LOAD_MIN = 150
 LOAD_MAX = 255
+
+LOOP_INTERVAL = 5
+
+BOILER_MIN_TEMPERATURE = 30
+
 
 power = 0
 old_power = 0
@@ -82,14 +88,20 @@ def calculate_required_balance():
     else:
         average = state.inst_balance_total
 
-    required_balance = MIN_BALANCE_TOTAL + 300
+    required_balance = MIN_BALANCE_TOTAL + BUFFER
     if (cycle_duration > 30):
-        # 900 seconds is cycle duration. At the beginning of cycle we will have 300w buffer at the end we have 0W buffer
-        buffer = (900 - cycle_duration) / 900 * 300
+        # 900 seconds is cycle duration. At the beginning of cycle we will have BUFFER w buffer at the end we have 0W buffer
+        buffer = (900 - cycle_duration) / 900 * BUFFER
         # closer the end, the bigger is correction factor. After first minute it is 1, at the end it is 15
         # it is because after 1 minute we can fix 100W error using 100w correction, at the end we need 1400w correction
         # multiply by 2 to have more aggressive, faster correction
         correction = (MIN_BALANCE_TOTAL + buffer - average) * (cycle_duration / 60)
+
+#        missing_kwh = MIN_BALANCE_TOTAL / 4 - cycle_exported
+#        time_left = 900 - cycle_duration
+#        optimal_balance = missing_kwh * 4 / time_left * 3600
+#        print(f"Optimal: {optimal_balance:>6.0f}W." end = "")
+
         # to be more aggressive if export over the limit
         if correction > 0:
             correction = correction * 1.5
@@ -128,6 +140,7 @@ def calculate_power(inst_balance_total, required_balance, power):
     elif inst_balance_total > required_balance + 20 and power > LOAD_MIN:
         power -= delta
 
+# Turn on boiler in the morning and evening to increase temperature before typical showering time.
     power = recalculate_power_by_temperature(power)
 
     power = correct_power(power)
@@ -139,7 +152,7 @@ def recalculate_power_by_temperature(power):
     currenttime = datetime.datetime.now()
     temperature_value_age = currenttime.timestamp() - state.boiler_temperature_time.timestamp()
     time_condition = (currenttime.hour >= 16 and currenttime.hour < 19) or (currenttime.hour >= 7 and currenttime.hour < 8)
-    if float(state.boiler_temperature) < 50 and temperature_value_age < 60000 and time_condition:
+    if float(state.boiler_temperature) < BOILER_MIN_TEMPERATURE and temperature_value_age < 60000 and time_condition:
         print(f"T: {state.boiler_temperature:>3.2f}\u2103", end="")
         return 255
     else:
@@ -158,7 +171,7 @@ def dispatcher_loop():
                 power = calculate_power(state.inst_balance_total, required_balance, power)
 
             is_sent = set_power(power, old_power, is_sent)
-            time.sleep(5)
+            time.sleep(LOOP_INTERVAL)
         except KeyboardInterrupt:
             print("Dispatcher terminated by user.")
             break

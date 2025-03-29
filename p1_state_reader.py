@@ -4,7 +4,7 @@ import time
 
 from state import State
 
-P1_FILE_PATH = '/opt/tmpfs/demo.txt'
+P1_FILE_PATH = '/mnt/ramdisk/p1_live.txt'
 
 def extract_value(value_code, response_lines):
     value = 0
@@ -32,6 +32,7 @@ def load_inst_export(response_lines):
 
 def load_total_exported(response_lines):
     export = extract_value("1-0:2.8.0", response_lines)
+    #print(f"Exported {export}")
     return export
 #    export_day = extract_value("1-0:2.8.1", response_lines)
 #    export_night = extract_value("1-0:2.8.2", response_lines)
