@@ -71,7 +71,7 @@ def read_average_temperature():
             time.sleep(10)
 
 
-class StateReader(threading.Thread):
+class BoilerStateReader(threading.Thread):
     def __init__(self, state):
         super().__init__()
         self.state = state
