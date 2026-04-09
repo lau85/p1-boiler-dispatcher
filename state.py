@@ -3,6 +3,15 @@ import threading
 
 class State:
 
+    homeassist_state_lock = threading.Lock()
+    homeassist_max_export_power = 9900
+    homeassist_max_export_power_buffer = 400
+
+
+    homeassist_min_boiler_temperature = 20
+    homeassist_boiler_mode = 'OVERPOWER'
+
+
     boiler_power_lock = threading.Lock()
     boiler_power = 0
     boiler_power_time = datetime.datetime.strptime('2000-01-01 00:00:00', '%Y-%m-%d %H:%M:%S')
@@ -25,6 +34,7 @@ class State:
     inst_balance_total = 0
 
     current_exported = 0
+    current_average = 0
 
 
 def set_boiler_power(new_power):

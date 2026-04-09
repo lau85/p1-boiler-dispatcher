@@ -4,7 +4,7 @@ import time
 
 from state import State
 
-P1_FILE_PATH = '/opt/tmpfs/demo.txt'
+P1_FILE_PATH = '/mnt/ramdisk/p1_live.txt'
 
 def extract_value(value_code, response_lines):
     value = 0
@@ -32,10 +32,15 @@ def load_inst_export(response_lines):
 
 def load_total_exported(response_lines):
     export = extract_value("1-0:2.8.0", response_lines)
+    #print(f"Exported {export}")
     return export
 #    export_day = extract_value("1-0:2.8.1", response_lines)
 #    export_night = extract_value("1-0:2.8.2", response_lines)
 #    return export_day + export_night
+
+def load_current_average(response_lines):
+    average = extract_value("1-0:2.7.9", response_lines)
+    return average
 
 
 class P1StateReader(threading.Thread):
@@ -57,7 +62,13 @@ class P1StateReader(threading.Thread):
                         time.sleep(0.1)
                         continue
 
+                    current_average = load_current_average(response_lines)
+                    if current_average == 0:
+                        time.sleep(0.1)
+                        continue
+
                     self.state.current_exported = current_exported
+                    self.state.current_average = current_average
 
 
                     self.state.p1_state_time = datetime.datetime.now()
@@ -71,11 +82,10 @@ class P1StateReader(threading.Thread):
                     self.state.inst_balance_total = sum(self.state.inst_balance)
 
                     if print_counter == 0:
-                        print(f"{self.state.p1_state_time} Live: {self.state.inst_balance_total:>6}W [{self.state.inst_balance[0]:>5}W {self.state.inst_balance[1]:>5}W {self.state.inst_balance[2]:>5}W]")
+                        print(f"{self.state.p1_state_time} Live: {self.state.inst_balance_total:>6}W [{self.state.inst_balance[0]:>5}W {self.state.inst_balance[1]:>5}W {self.state.inst_balance[2]:>5}W] Avg: {self.state.current_average}")
                         print_counter = 50
                     print_counter = print_counter - 1
 
-                ## TODO change to 1 second and reduce logging
                 time.sleep(0.2)
             except KeyboardInterrupt:
                 print("Dispatcher terminated by user.")

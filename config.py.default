@@ -1,0 +1,6 @@
+
+HOME_ASSISTANT_URL = "https://...."
+ACCESS_TOKEN = ""
+
+BOILER_URL = "http://10.0.0.191/light/boiler_power"
+

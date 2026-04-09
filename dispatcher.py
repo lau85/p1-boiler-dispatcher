@@ -2,18 +2,17 @@ import datetime
 import time
 import requests
 import threading
+import config
 from state import State
-
-BOILER_URL='http://10.0.0.191/light/boiler_power'
 
 BOILER_PHASE = 0
 
-MIN_BALANCE_TOTAL = -9980
-#MIN_BALANCE_TOTAL = -4000
-MAX_BALANCE_TOTAL = -4000
+MAX_BALANCE_TOTAL = -5000
 
 LOAD_MIN = 150
 LOAD_MAX = 255
+
+LOOP_INTERVAL = 3
 
 power = 0
 old_power = 0
@@ -26,6 +25,12 @@ required_balance = 0
 
 state = None
 
+def get_min_balance_total():
+    return state.homeassist_max_export_power * -1
+
+def get_buffer():
+    return state.homeassist_max_export_power_buffer
+
 def set_power(power, old_power, is_sent):
     if (power == LOAD_MIN):
         action = 'turn_off'
@@ -36,7 +41,7 @@ def set_power(power, old_power, is_sent):
         is_sent = False
         try:
             print(f" Load: {old_power:>3} -> {power:>3}")
-            url = f"{BOILER_URL}/{action}?brightness={power}"
+            url = f"{config.BOILER_URL}/light/Boiler%20power/{action}?brightness={power}"
             requests.post(url)
             is_sent = True
         except Exception as error:
@@ -62,7 +67,6 @@ def calculate_required_balance():
     cycle_exported = 0
 
     # to reset start_time every 15 minutes.
-    # TODO move average consumption calculation to a separate thread
     # there is a risk, that p1_state_time is not updated if p1 will not respond for longer than 1 minute and start_time will not be reset.
     if start_time is not None and state.p1_state_time.minute % 15 == 0 and start_time.minute != state.p1_state_time.minute:
         start_time = None
@@ -77,19 +81,22 @@ def calculate_required_balance():
         cycle_exported = state.current_exported - start_exported
         cycle_duration = state.p1_state_time.timestamp() - start_time.timestamp()
 
-    if cycle_duration > 10:
-        average = cycle_exported * 3600 / cycle_duration * (-1)
-    else:
-        average = state.inst_balance_total
+    average = state.current_average * -1
 
-    required_balance = MIN_BALANCE_TOTAL + 300
+    required_balance = get_min_balance_total() + get_buffer()
     if (cycle_duration > 30):
-        # 900 seconds is cycle duration. At the beginning of cycle we will have 300w buffer at the end we have 0W buffer
-        buffer = (900 - cycle_duration) / 900 * 300
+        # 900 seconds is cycle duration. At the beginning of cycle we will have BUFFER w buffer at the end we have 0W buffer
+        buffer = (900 - cycle_duration) / 900 * get_buffer()
         # closer the end, the bigger is correction factor. After first minute it is 1, at the end it is 15
         # it is because after 1 minute we can fix 100W error using 100w correction, at the end we need 1400w correction
         # multiply by 2 to have more aggressive, faster correction
-        correction = (MIN_BALANCE_TOTAL + buffer - average) * (cycle_duration / 60)
+        correction = (get_min_balance_total() + buffer - average) * (cycle_duration / 60)
+
+#        missing_kwh = get_min_balance_total() / 4 - cycle_exported
+#        time_left = 900 - cycle_duration
+#        optimal_balance = missing_kwh * 4 / time_left * 3600
+#        print(f"Optimal: {optimal_balance:>6.0f}W." end = "")
+
         # to be more aggressive if export over the limit
         if correction > 0:
             correction = correction * 1.5
@@ -97,7 +104,7 @@ def calculate_required_balance():
             correction = 9999
         if correction < -9999:
             correction = -9999
-        required_balance = MIN_BALANCE_TOTAL + correction + buffer
+        required_balance = get_min_balance_total() + correction + buffer
         print(f"Buff: {buffer:>4.0f} Corr: {correction:>5.0f} ", end = "")
 
     if (required_balance > MAX_BALANCE_TOTAL):
@@ -128,6 +135,7 @@ def calculate_power(inst_balance_total, required_balance, power):
     elif inst_balance_total > required_balance + 20 and power > LOAD_MIN:
         power -= delta
 
+# Turn on boiler based on homeassistant temperature config.
     power = recalculate_power_by_temperature(power)
 
     power = correct_power(power)
@@ -138,12 +146,9 @@ def recalculate_power_by_temperature(power):
     global state
     currenttime = datetime.datetime.now()
     temperature_value_age = currenttime.timestamp() - state.boiler_temperature_time.timestamp()
-    time_condition = (currenttime.hour >= 16 and currenttime.hour < 19) or (currenttime.hour >= 7 and currenttime.hour < 8)
-    if float(state.boiler_temperature) < 50 and temperature_value_age < 60000 and time_condition:
-        print(f"T: {state.boiler_temperature:>3.2f}\u2103", end="")
+    if float(state.boiler_temperature) < float(state.homeassist_min_boiler_temperature) and temperature_value_age < 60000:
         return 255
     else:
-        print(f"T: {state.boiler_temperature:>3.2f}\u2103", end="")
         return power
 
 def dispatcher_loop():
@@ -158,7 +163,7 @@ def dispatcher_loop():
                 power = calculate_power(state.inst_balance_total, required_balance, power)
 
             is_sent = set_power(power, old_power, is_sent)
-            time.sleep(5)
+            time.sleep(LOOP_INTERVAL)
         except KeyboardInterrupt:
             print("Dispatcher terminated by user.")
             break
