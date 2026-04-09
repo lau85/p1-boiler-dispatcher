@@ -29,14 +29,4 @@ input_number:
         unit_of_measurement: "°C"
         min: 5
         max: 80
-    min_boiler_temperature_morning:
-        name: "Minimal boiler temperature in the morning"
-        unit_of_measurement: "°C"
-        min: 5
-        max: 80
-    min_boiler_temperature_evening:
-        name: "Minimal boiler temperature in the evening"
-        unit_of_measurement: "°C"
-        min: 5
-        max: 80
 ```
