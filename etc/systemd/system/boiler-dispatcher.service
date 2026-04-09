@@ -1,0 +1,27 @@
+# copy to /etc/systemd/system
+# systemctl enable boiler-dispacher.service
+
+[Unit]
+Description=Boiler dispacher
+
+Requires=network.target
+After=network.target
+Wants=network-online.target systemd-networkd-wait-online.service
+
+[Service]
+Type=idle
+ExecStartPre=/bin/mkdir -p /mnt/ramdisk/logs
+ExecStart=/home/pi/scripts/p1-boiler-dispatcher/main.py
+#RemainAfterExit=true
+
+# incase log.py and mqtt.py is put in this location
+Environment="PYTHONPATH=/opt/python/lib"
+Restart=on-failure
+RestartSec=60
+
+# Logging
+StandardOutput=append:/mnt/ramdisk/logs/dispatcher.log
+StandardError=append:/mnt/ramdisk/logs/dispatcher.log
+
+[Install]
+WantedBy=network-online.target

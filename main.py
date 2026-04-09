@@ -1,4 +1,8 @@
+#!/usr/bin/python3
+
+
 import time
+import sys
 
 from dispatcher import Dispatcher
 from boiler_state_reader import BoilerStateReader
@@ -7,7 +11,12 @@ from homeassist_state_reader import HomeassistStateReader
 
 from state import State
 
+# This forces line-by-line flushing everywhere.
+sys.stdout.reconfigure(line_buffering=True)
+
+
 state = State()
+
 
 def main():
     dispatcher = Dispatcher(state)
