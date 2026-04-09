@@ -3,6 +3,7 @@ import json
 import requests
 import threading
 import time
+import config
 import state
 
 def read_line(response):
@@ -36,7 +37,8 @@ def read_temperature_value():
     while trycount > 0:
         trycount -= 1
         try:
-            response = requests.get('http://10.0.0.191/events', stream=True, timeout=5)
+            url = f"{config.BOILER_URL}/events"
+            response = requests.get(url, stream=True, timeout=(3, None))
             if response.status_code == 200:
                 while True:
                     line = read_line(response)
@@ -48,7 +50,7 @@ def read_temperature_value():
                     print("Failed to retrieve data. Status code:", response.status_code)
         except Exception as error:
             if trycount == 0:
-                print(error)
+                print(f"{t.ident} {error}")
         time.sleep(1)
     return None
 

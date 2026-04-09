@@ -41,7 +41,7 @@ def set_power(power, old_power, is_sent):
         is_sent = False
         try:
             print(f" Load: {old_power:>3} -> {power:>3}")
-            url = f"{config.BOILER_URL}/{action}?brightness={power}"
+            url = f"{config.BOILER_URL}/light/Boiler%20power/{action}?brightness={power}"
             requests.post(url)
             is_sent = True
         except Exception as error:
@@ -81,7 +81,7 @@ def calculate_required_balance():
         cycle_exported = state.current_exported - start_exported
         cycle_duration = state.p1_state_time.timestamp() - start_time.timestamp()
 
-    average = state.current_average
+    average = state.current_average * -1
 
     required_balance = get_min_balance_total() + get_buffer()
     if (cycle_duration > 30):
@@ -135,7 +135,7 @@ def calculate_power(inst_balance_total, required_balance, power):
     elif inst_balance_total > required_balance + 20 and power > LOAD_MIN:
         power -= delta
 
-# Turn on boiler in the morning and evening to increase temperature before typical showering time.
+# Turn on boiler based on homeassistant temperature config.
     power = recalculate_power_by_temperature(power)
 
     power = correct_power(power)
@@ -146,13 +146,7 @@ def recalculate_power_by_temperature(power):
     global state
     currenttime = datetime.datetime.now()
     temperature_value_age = currenttime.timestamp() - state.boiler_temperature_time.timestamp()
-    time_condition_morning = currenttime.hour >= 7 and currenttime.hour < 8
-    time_condition_evening = currenttime.hour >= 16 and currenttime.hour < 19
-    if float(state.boiler_temperature) < float(state.homeassist_min_boiler_temperature_morning) and temperature_value_age < 60000 and time_condition_morning:
-        return 255
-    elif float(state.boiler_temperature) < float(state.homeassist_min_boiler_temperature_evening) and temperature_value_age < 60000 and time_condition_evening:
-        return 255
-    elif float(state.boiler_temperature) < float(state.homeassist_min_boiler_temperature) and temperature_value_age < 60000:
+    if float(state.boiler_temperature) < float(state.homeassist_min_boiler_temperature) and temperature_value_age < 60000:
         return 255
     else:
         return power

@@ -10,8 +10,6 @@ ENTITY_IDS = {
     "max_export_to_grid_power_boiler": "input_number.max_export_to_grid_power_boiler",
     "max_export_to_grid_power_boiler_buffer": "input_number.max_export_to_grid_power_boiler_buffer",
     "min_boiler_temperature": "input_number.min_boiler_temperature",
-    "min_boiler_temperature_evening": "input_number.min_boiler_temperature_evening",
-    "min_boiler_temperature_morning": "input_number.min_boiler_temperature_morning",
     "boiler_mode": "input_select.boiler_mode"
 
 }
@@ -22,7 +20,7 @@ def get_state(entity_id):
         "Authorization": f"Bearer {config.ACCESS_TOKEN}",
         "Content-Type": "application/json"
     }
-    response = requests.get(url, headers=headers)
+    response = requests.get(url, headers=headers, timeout=5)
     if response.status_code == 200:
         return response.json().get("state")
     else:
@@ -43,11 +41,9 @@ class HomeassistStateReader(threading.Thread):
                     self.state.homeassist_max_export_power = int(float(get_state(ENTITY_IDS["max_export_to_grid_power_boiler"])))
                     self.state.homeassist_max_export_power_buffer = int(float(get_state(ENTITY_IDS["max_export_to_grid_power_boiler_buffer"])))
                     self.state.homeassist_min_boiler_temperature = int(float(get_state(ENTITY_IDS["min_boiler_temperature"])))
-                    self.state.homeassist_min_boiler_temperature_morning = int(float(get_state(ENTITY_IDS["min_boiler_temperature_morning"])))
-                    self.state.homeassist_min_boiler_temperature_evening = int(float(get_state(ENTITY_IDS["min_boiler_temperature_evening"])))
                     self.state.homeassist_boiler_mode = get_state(ENTITY_IDS["boiler_mode"])
                     print(f"max_export_to_grid_power_boiler: {self.state.homeassist_max_export_power} max_export_to_grid_power_boiler_buffer: {self.state.homeassist_max_export_power_buffer}\n")
-                time.sleep(30)
+                time.sleep(15)
             except KeyboardInterrupt:
                 print("Homeassist state reader terminated by user.")
                 break

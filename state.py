@@ -6,14 +6,9 @@ class State:
     homeassist_state_lock = threading.Lock()
     homeassist_max_export_power = 9900
     homeassist_max_export_power_buffer = 400
-    homeassist_boiler_min_temperature = 10
-    homeassist_boiler_temperature_evening = 40
-    homeassist_boiler_temperature_morning = 30
-    
+
 
     homeassist_min_boiler_temperature = 20
-    homeassist_min_boiler_temperature_morning = 40
-    homeassist_min_boiler_temperature_evening = 40
     homeassist_boiler_mode = 'OVERPOWER'
 
 
