@@ -10,7 +10,6 @@ Wants=network-online.target systemd-networkd-wait-online.service
 
 [Service]
 Type=idle
-ExecStartPre=/bin/mkdir -p /mnt/ramdisk/logs
 ExecStart=/home/pi/scripts/p1-boiler-dispatcher/main.py
 #RemainAfterExit=true
 
@@ -20,8 +19,8 @@ Restart=on-failure
 RestartSec=60
 
 # Logging
-StandardOutput=append:/mnt/ramdisk/logs/dispatcher.log
-StandardError=append:/mnt/ramdisk/logs/dispatcher.log
+StandardOutput=append:/mnt/ramdisk/dispatcher.log
+StandardError=append:/mnt/ramdisk/dispatcher.log
 
 [Install]
 WantedBy=network-online.target

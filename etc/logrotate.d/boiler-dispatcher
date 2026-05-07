@@ -1,7 +1,7 @@
-/mnt/ramdisk/logs/dispatcher.log {
+/mnt/ramdisk/dispatcher.log {
     daily
     missingok
-    rotate 4
+    rotate 7
     compress
     notifempty
     create 644 pi pi
